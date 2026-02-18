@@ -4,21 +4,15 @@
  * digest, importKey, sign, encrypt, decrypt.
  *
  * On desktop/browser where crypto.subtle already exists, this is a no-op.
- * Uses @noble/hashes and @noble/ciphers — pure JS, 6 Cure53 audits, zero deps.
+ * Dependencies are loaded conditionally to avoid pulling in node:crypto
+ * on platforms that don't need the polyfill.
  */
-import { cbc } from '@noble/ciphers/aes'
-import { hmac } from '@noble/hashes/hmac'
-import { sha256 } from '@noble/hashes/sha256'
-import { sha512 } from '@noble/hashes/sha512'
 
 if (!globalThis.crypto) {
   globalThis.crypto = {}
 }
 
 if (!globalThis.crypto.getRandomValues) {
-  // Cannot use @noble/hashes/utils.randomBytes here — it calls
-  // crypto.getRandomValues internally, which would create infinite recursion.
-  // Use expo-crypto's native CSPRNG instead.
   try {
     const { getRandomValues } = require('expo-crypto')
     globalThis.crypto.getRandomValues = getRandomValues
@@ -30,6 +24,11 @@ if (!globalThis.crypto.getRandomValues) {
 }
 
 if (!globalThis.crypto.subtle) {
+  const { sha256 } = require('@noble/hashes/sha256')
+  const { sha512 } = require('@noble/hashes/sha512')
+  const { hmac } = require('@noble/hashes/hmac')
+  const { cbc } = require('@noble/ciphers/aes')
+
   const toUint8 = (data) => {
     if (data instanceof Uint8Array) return data
     if (data instanceof ArrayBuffer) return new Uint8Array(data)
@@ -41,9 +40,6 @@ if (!globalThis.crypto.subtle) {
 
   const algName = (alg) => (typeof alg === 'string' ? alg : alg?.name || '')
 
-  // Returns a clean ArrayBuffer with exact byte length.
-  // Needed because noble-ciphers' decrypt may return a subarray whose
-  // .buffer includes padding bytes beyond the valid data range.
   const toBuffer = (uint8) =>
     uint8.buffer.slice(uint8.byteOffset, uint8.byteOffset + uint8.byteLength)
 
