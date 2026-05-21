@@ -1,3 +1,4 @@
+import { parseOtpUri } from '../otp/shared/parseOtpUri.js'
 import { addHttps } from '../utils/addHttps'
 import { getRowsFromCsv } from '../utils/getRowsFromCsv'
 
@@ -60,11 +61,23 @@ const getCustomFieldsFromContent = (content) => [
     : [])
 ]
 
+const getOtpSecret = (totpUri) => {
+  if (!totpUri) return undefined
+  try {
+    return parseOtpUri(totpUri).secret
+  } catch {
+    return undefined
+  }
+}
+
 const getLoginDataFromContent = ({ content = {}, metadata = {} }) => ({
   username: content.itemUsername || '',
   password: content.password || '',
   note: metadata.note || '',
-  websites: (content.urls || []).map((url) => addHttps(url))
+  websites: (content.urls || []).map((url) => addHttps(url)),
+  ...(getOtpSecret(content.totpUri) !== undefined
+    ? { otpInput: getOtpSecret(content.totpUri) }
+    : {})
 })
 
 const getIdentityDataFromContent = ({ content = {}, metadata = {} }) => ({
@@ -152,7 +165,8 @@ export const parseProtonPassCsv = (csvText) => {
 
   for (const row of rows) {
     const rowData = Object.fromEntries(row.map((v, i) => [headers[i], v]))
-    const { type, name, url, username, password, note, vault, email } = rowData
+    const { type, name, url, username, password, note, totp, vault, email } =
+      rowData
 
     let data = {
       title: name || '',
@@ -168,7 +182,8 @@ export const parseProtonPassCsv = (csvText) => {
             content: {
               itemUsername: username || email || '',
               password,
-              urls: url ? [url] : []
+              urls: url ? [url] : [],
+              totpUri: totp || ''
             },
             metadata: { note }
           })

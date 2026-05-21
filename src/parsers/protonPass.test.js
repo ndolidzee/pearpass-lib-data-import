@@ -46,6 +46,56 @@ describe('parseProtonPassJson', () => {
     ])
   })
 
+  it('extracts otpInput secret from totpUri on login items', () => {
+    const json = {
+      vaults: {
+        v1: {
+          name: 'Personal',
+          items: [
+            {
+              pinned: false,
+              data: {
+                type: 'login',
+                metadata: { name: 'OTP Site', note: '' },
+                content: {
+                  itemUsername: 'user',
+                  password: 'pass',
+                  urls: [],
+                  totpUri:
+                    'otpauth://totp/OTP%20Site:user?secret=JBSWY3DP&issuer=OTP%20Site&algorithm=SHA1&digits=6&period=30'
+                }
+              }
+            }
+          ]
+        }
+      }
+    }
+    const result = parseProtonPassJson(json)
+    expect(result[0].data.otpInput).toBe('JBSWY3DP')
+  })
+
+  it('omits otpInput when totpUri is absent on login items', () => {
+    const json = {
+      vaults: {
+        v1: {
+          name: 'Personal',
+          items: [
+            {
+              pinned: false,
+              data: {
+                type: 'login',
+                metadata: { name: 'No OTP', note: '' },
+                content: { itemUsername: 'user', password: 'pass', urls: [] }
+              }
+            }
+          ]
+        }
+      }
+    }
+    const result = parseProtonPassJson(json)
+    expect(result[0].data.otpInput).toBeUndefined()
+  })
+
   it('parses identity items correctly', () => {
     const json = {
       vaults: {
@@ -162,6 +212,24 @@ describe('parseProtonPassCsv', () => {
     expect(result[0].type).toBe('note')
     expect(result[0].data.title).toBe('Note Title')
     expect(result[0].data.note).toBe('note content')
+  })
+
+  it('extracts otpInput secret from totp column on login rows', () => {
+    const csv = [
+      'type,name,url,username,password,note,totp,vault,email',
+      'login,OTP Site,example.com,user,pass,,otpauth://totp/OTP%20Site:user?secret=JBSWY3DP&issuer=OTP%20Site&algorithm=SHA1&digits=6&period=30,Personal,'
+    ].join('\n')
+    const result = parseProtonPassCsv(csv)
+    expect(result[0].data.otpInput).toBe('JBSWY3DP')
+  })
+
+  it('omits otpInput when totp column is absent on login rows', () => {
+    const csv = [
+      'type,name,url,username,password,note,vault,email',
+      'login,My Site,example.com,user1,pass1,my note,Personal,'
+    ].join('\n')
+    const result = parseProtonPassCsv(csv)
+    expect(result[0].data.otpInput).toBeUndefined()
   })
 
   it('handles unknown types as custom', () => {
