@@ -1,7 +1,7 @@
 import {
   parseBitwardenAuthenticatorJson,
   parseBitwardenAuthenticatorCsv,
-  parseBitwardenAuthenticatorData
+  normalizeBitwardenAuthenticator
 } from './normalize'
 
 // URI with empty label — the format Bitwarden Authenticator actually exports
@@ -119,24 +119,24 @@ describe('parseBitwardenAuthenticatorCsv', () => {
   })
 })
 
-describe('parseBitwardenAuthenticatorData', () => {
+describe('normalizeBitwardenAuthenticator', () => {
   it('dispatches to JSON parser', () => {
     const json = JSON.stringify({
       encrypted: false,
       items: [{ name: 'Test', type: 1, login: { totp: TOTP_EMPTY_LABEL } }]
     })
-    expect(parseBitwardenAuthenticatorData(json, 'json')).toHaveLength(1)
+    expect(normalizeBitwardenAuthenticator(json, 'json')).toHaveLength(1)
   })
 
   it('dispatches to CSV parser', () => {
     const csv = [CSV_HEADER, `,,login,Test,,,0,,,,${TOTP_EMPTY_LABEL}`].join(
       '\n'
     )
-    expect(parseBitwardenAuthenticatorData(csv, 'csv')).toHaveLength(1)
+    expect(normalizeBitwardenAuthenticator(csv, 'csv')).toHaveLength(1)
   })
 
   it('throws on unsupported file type', () => {
-    expect(() => parseBitwardenAuthenticatorData('', 'xml')).toThrow(
+    expect(() => normalizeBitwardenAuthenticator('', 'xml')).toThrow(
       'Unsupported file type'
     )
   })
