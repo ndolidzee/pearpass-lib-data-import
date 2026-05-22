@@ -11,10 +11,13 @@ describe('detectProvider', () => {
     expect(detectProvider('otpauth://totp/alice?secret=ABC')).toBe('otp-uri')
   })
 
-  it('returns unknown for unrecognised strings', () => {
+  it('returns unknown for unrecognised strings (including JSON file content)', () => {
     expect(detectProvider('https://example.com')).toBe('unknown')
     expect(detectProvider('')).toBe('unknown')
     expect(detectProvider('not-a-uri')).toBe('unknown')
+    expect(
+      detectProvider(JSON.stringify({ header: {}, db: { entries: [] } }))
+    ).toBe('unknown')
   })
 
   it('returns unknown for non-string input', () => {

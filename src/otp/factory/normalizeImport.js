@@ -14,19 +14,23 @@ import { parseOtpUri } from '../shared/parseOtpUri.js'
  */
 
 /**
- * Provider-agnostic entry point for importing OTP records.
+ * Normalizes OTP URI/QR imports into OTPRecord[].
  *
- * Accepts one or more decoded QR/URI strings. For Google Authenticator
- * batch exports, pass all QR payloads together — the function assembles
- * them and returns incomplete-batch when parts are still missing.
+ * Accepts one or more decoded QR/URI strings and auto-detects the format from
+ * the URI scheme: Google Authenticator migration URIs (`otpauth-migration://`)
+ * and standard `otpauth://` URIs. For Google batch exports, pass all QR payloads
+ * together so partial batches can be detected.
  *
- * @param {string | string[]} input - One or more OTP URI strings
+ * File-based authenticator exports (e.g. Aegis, Proton) are handled by their own
+ * dedicated handlers — this stays a focused URI normalization layer.
+ *
+ * @param {string | string[]} input - OTP URI string(s)
  * @returns {NormalizeResult}
  */
 export function normalizeImport(input) {
   const uris = Array.isArray(input) ? input : [input]
 
-  if (uris.length === 0) {
+  if (uris.length === 0 || uris[0] === undefined || uris[0] === null) {
     throw new Error('normalizeImport: input must not be empty')
   }
 
@@ -51,5 +55,5 @@ export function normalizeImport(input) {
     return { status: STATUS.complete, records }
   }
 
-  throw new Error(`normalizeImport: unsupported or unrecognized input format`)
+  throw new Error('normalizeImport: unsupported or unrecognized input format')
 }
