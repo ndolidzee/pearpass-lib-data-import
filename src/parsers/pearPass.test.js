@@ -103,6 +103,32 @@ describe('parsePearPassCsv', () => {
     expect(result[0].isFavorite).toBe(false)
   })
 
+  it('parses passkey fields on login entries', async () => {
+    const credential = {
+      id: 'abc123',
+      type: 'public-key',
+      response: { clientDataJSON: 'data' }
+    }
+    const credentialJson = JSON.stringify(credential).replace(/"/g, '""')
+    const csv = [
+      '"type","title","username","password","websites","passkeyCreatedAt","passkeyCredential","note","customFields","folder","isFavorite"',
+      `"login","My Site","user1","pass1","","1780336413911","${credentialJson}","","","","false"`
+    ].join('\n')
+    const result = await parsePearPassCsv(csv)
+    expect(result[0].data.passkeyCreatedAt).toBe(1780336413911)
+    expect(result[0].data.credential).toEqual(credential)
+  })
+
+  it('defaults passkey fields to empty/null when absent', async () => {
+    const csv = [
+      '"type","title","username","password","websites","passkeyCreatedAt","passkeyCredential","note","customFields","folder","isFavorite"',
+      '"login","My Site","user1","pass1","","","","","","","false"'
+    ].join('\n')
+    const result = await parsePearPassCsv(csv)
+    expect(result[0].data.passkeyCreatedAt).toBe('')
+    expect(result[0].data.credential).toBeNull()
+  })
+
   it('handles missing optional fields gracefully', async () => {
     const csv = [
       '"type","title","username","password","websites","note","customFields","folder","isFavorite"',

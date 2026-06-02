@@ -39,6 +39,12 @@ export const parsePearPassCsv = async (text) => {
         ? entry.websites.split(';').map((w) => addHttps(w))
         : []
       data.otpInput = entry.otpInput?.trim() || undefined
+      data.passkeyCreatedAt = entry.passkeyCreatedAt
+        ? Number(entry.passkeyCreatedAt)
+        : ''
+      data.credential = entry.passkeyCredential
+        ? JSON.parse(entry.passkeyCredential)
+        : null
     } else if (type === 'creditCard') {
       data.name = entry.name || ''
       data.number = entry.number || ''
